@@ -1,8 +1,8 @@
 import threading
 import socket
 
-host = '127.0.0.1'
-port = 59000
+host = '127.0.0.1' #localhost
+port = 55555
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((host, port))
@@ -15,16 +15,16 @@ def broadcast(message):
     for client in clients:
         client.send(message)
     
-def handle_client(client):
+def handle(client):
     while True:
         try:
             msg = message = client.recv(1024)
-            if msg.decode('utf-8').startswith('KICK'):
+            if msg.decode('ascii').startswith('KICK'):
                 if nicknames[clients.index(client)] == 'admin':
-                    name_to_kick = msg.decode('utf-8')[5:]
+                    name_to_kick = msg.decode('ascii')[5:]
                     kick_user(name_to_kick)
                 else:
-                    client.send('Command was refused!'.encode('utf-8'))
+                    client.send('Command was refused!'.encode('ascii'))
             else:
                 broadcast(message)
         except:
@@ -33,43 +33,35 @@ def handle_client(client):
                 clients.remove(client)
                 client.close()
                 nickname = nicknames[index]
-                broadcast(f'{nickname} deixou o chat!'.encode('utf-8'))
+                broadcast(f'{nickname} left the chat!'.encode('ascii'))
                 nicknames.remove(nickname)
                 break
         
 def receive():
     while True:
         client, address = server.accept()
-        print(f'Connection is established: {str(address)}')
+        print(f'Connect on address: {str(address)}')
         
-        client.send('NICK'.encode('utf-8'))
-        nickname = client.recv(1024).decode('utf-8')
-        
-        with open('bans.txt', 'r') as f:
-            bans = f.readlines()
-            
-        if nickname+'\n' in bans:
-            client.send('BAN'.encode('utf-8'))
-            client.close()
-            continue
+        client.send('NICK'.encode('ascii'))
+        nickname = client.recv(1024).decode('ascii')
         
         if nickname == 'admin':
-            client.send('PASS'.encode('utf-8'))
-            password = client.recv(1024).decode('utf-8')
+            client.send('PASS'.encode('ascii'))
+            password = client.recv(1024).decode('ascii')
             
             if password != 'adminpass':
-                client.send('REFUSE'.encode('utf-8'))
+                client.send('REFUSE'.encode('ascii'))
                 client.close()
                 continue
     
         nicknames.append(nickname)
         clients.append(client)
         
-        print(f'Connected with name {nickname}!')
-        broadcast(f'{nickname} joined the chat!'.encode('utf-8'))
-        client.send('Connected in the server!').encode('utf-8')
+        print(f'Connected with {nickname}!')
+        broadcast(f'{nickname} joined the chat!'.encode('ascii'))
+        client.send('Connect on server!'.encode('ascii'))
         
-        thread = threading.Thread(target=handle_client, args=(client,))
+        thread = threading.Thread(target=handle, args=(client,))
         thread.start()
         
 def kick_user(name):
@@ -77,11 +69,10 @@ def kick_user(name):
         name_index = nicknames.index(name)
         client_to_kick = clients[name_index]
         clients.remove(client_to_kick)
-        client_to_kick.send('You were kicked by admin!'.encode('utf-8'))
+        client_to_kick.send('You were kicked by admin!'.encode('ascii'))
         client_to_kick.close()
         nicknames.remove(name)
-        broadcast(f'{name} was kicked by admin!'.encode('utf-8'))
-
-if __name__ == "__main__":
-    print('Server is listen...')
-    receive()
+        broadcast(f'{name} was kicked by admin!'.encode('ascii'))
+        
+print('Servidor está no ar...')
+receive()
